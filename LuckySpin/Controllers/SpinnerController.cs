@@ -71,6 +71,21 @@ namespace LuckySpin.Controllers
             spinVM.IsWinning = (spinVM.A == spinVM.Luck || spinVM.B == spinVM.Luck || spinVM.C == spinVM.Luck);
 
             //TODO : Add LuckySpin Game Logic (review flow chart for details)
+            
+            if (currentPlayer.Balance < 0.50M)
+            {
+                return RedirectToAction("LuckList", new { id = currentPlayer.Id });
+            }
+            else
+            {
+                currentPlayer.Balance -= 0.50M;
+                if (spinVM.IsWinning)
+                {
+                    currentPlayer.Balance += 1;
+                }
+                spinVM.Balance = currentPlayer.Balance;
+            }
+
 
 
             //Prepare the ViewBag
@@ -83,7 +98,7 @@ namespace LuckySpin.Controllers
             ViewBag.PlayerId = id;
 
             //Add the new Spin to the __current player's__ Spins collection
-            var spin = new Spin { IsWinning = spinVM.IsWinning };
+            var spin = new Spin { IsWinning = spinVM.IsWinning, Balance = spinVM.Balance };
             currentPlayer.Spins.Add(spin);
 
             //Update the database - only done once after all changes stored in Entities
@@ -100,7 +115,7 @@ namespace LuckySpin.Controllers
         {
             //Get the current player including their Spins list
             var currentPlayer = _dbc.Players.Include(p => p.Spins).Single(p => p.Id == id);
-
+            ViewBag.PlayerId = currentPlayer.Id;
             //Send the player's Spins to the View
             return View(currentPlayer.Spins);
         }
@@ -111,7 +126,10 @@ namespace LuckySpin.Controllers
          public IActionResult StartOver(int id)
         {
             //TODO: Remove Player and Update the Datbase
+            var currentPlayer = _dbc.Players.Include(p => p.Spins).Single(p => p.Id == id);
+            currentPlayer.Id = id;
 
+            _dbc.Players.Remove(currentPlayer);
 
             return RedirectToAction("Index");
         }
